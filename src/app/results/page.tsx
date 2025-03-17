@@ -3,13 +3,10 @@
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
 import { 
   AlertCircle, ArrowLeft, RefreshCw, Download, 
-  Shield, ShieldAlert, Eye, Terminal, Code, FileWarning,
+  Shield, ShieldAlert, Eye, Terminal, FileWarning,
   Lock, Fingerprint, Zap, AlertTriangle
 } from "lucide-react";
 
@@ -52,15 +49,15 @@ const mockResults = {
       impact: "May lead to various injection attacks",
       cveId: null,
     },
-    {
-      id: 4,
-      file: "src/components/Form.jsx",
-      line: 78,
-      severity: "low",
-      description: "XSS vulnerability in form handling",
-      impact: "Could enable client-side script injection",
-      cveId: null,
-    },
+    // {
+    //   id: 4,
+    //   file: "src/components/Form.jsx",
+    //   line: 78,
+    //   severity: "low",
+    //   description: "XSS vulnerability in form handling",
+    //   impact: "Could enable client-side script injection",
+    //   cveId: null,
+    // },
     {
       id: 5,
       file: "src/middleware/logger.js",
@@ -101,7 +98,7 @@ export default function ResultsPage() {
         setResults(mockResults);
         setLoadingProgress(100);
         clearInterval(interval);
-      } catch (err) {
+      } catch (error) {
         setError("Failed to load scan results");
       } finally {
         setTimeout(() => setLoading(false), 300);
@@ -272,11 +269,6 @@ export default function ResultsPage() {
     return "text-red-400";
   };
 
-  const getScoreGradient = (score: number) => {
-    if (score >= 80) return "from-green-500 to-green-400";
-    if (score >= 60) return "from-yellow-500 to-yellow-400";
-    return "from-red-500 to-red-400";
-  };
 
   return (
     <div className="min-h-screen w-full" style={{ background: cyberPattern }}>
@@ -287,7 +279,7 @@ export default function ResultsPage() {
             <div className="flex items-center justify-center gap-3">
               <Shield className="h-8 w-8 text-blue-400" />
               <h1 className="text-3xl font-mono font-bold text-white">
-                SECURITY SCAN
+                COACH
               </h1>
             </div>
           </div>
@@ -366,19 +358,19 @@ export default function ResultsPage() {
 
             <div className="w-full grid grid-cols-3 gap-2 pt-4 border-t border-blue-500/20">
               <div className="text-center">
-                <div className="text-sm text-gray-400 font-mono">Critical</div>
+                <div className="text-sm text-gray-400 font-mono">HIGH</div>
                 <div className="text-xl font-mono text-red-500">
                   {results.severities.high}
                 </div>
               </div>
               <div className="text-center">
-                <div className="text-sm text-gray-400 font-mono">Warning</div>
+                <div className="text-sm text-gray-400 font-mono">MEDIUM</div>
                 <div className="text-xl font-mono text-yellow-500">
                   {results.severities.medium}
                 </div>
               </div>
               <div className="text-center">
-                <div className="text-sm text-gray-400 font-mono">Notice</div>
+                <div className="text-sm text-gray-400 font-mono">LOW</div>
                 <div className="text-xl font-mono text-blue-500">
                   {results.severities.low}
                 </div>
@@ -401,7 +393,7 @@ export default function ResultsPage() {
               <div className="text-3xl font-mono font-bold text-red-400">
                 {results.severities.high}
               </div>
-              <div className="text-red-300 font-mono mt-2">CRITICAL</div>
+              <div className="text-red-300 font-mono mt-2">HIGH</div>
               <div className="text-xs text-red-300/70 mt-1">
                 High Risk Vulnerabilities
               </div>
@@ -424,7 +416,7 @@ export default function ResultsPage() {
               <div className="text-3xl font-mono font-bold text-yellow-400">
                 {results.severities.medium}
               </div>
-              <div className="text-yellow-300 font-mono mt-2">WARNING</div>
+              <div className="text-yellow-300 font-mono mt-2">MEDIUM</div>
               <div className="text-xs text-yellow-300/70 mt-1">
                 Medium Risk Vulnerabilities
               </div>
@@ -447,7 +439,7 @@ export default function ResultsPage() {
               <div className="text-3xl font-mono font-bold text-blue-400">
                 {results.severities.low}
               </div>
-              <div className="text-blue-300 font-mono mt-2">NOTICE</div>
+              <div className="text-blue-300 font-mono mt-2">LOW</div>
               <div className="text-xs text-blue-300/70 mt-1">
                 Low Risk Vulnerabilities
               </div>
@@ -486,19 +478,19 @@ export default function ResultsPage() {
                   value="high"
                   className="data-[state=active]:bg-red-900/70 data-[state=active]:text-red-200 font-mono"
                 >
-                  CRITICAL ({results.severities.high})
+                  HIGH ({results.severities.high})
                 </TabsTrigger>
                 <TabsTrigger
                   value="medium"
                   className="data-[state=active]:bg-yellow-900/70 data-[state=active]:text-yellow-200 font-mono"
                 >
-                  WARNING ({results.severities.medium})
+                  MEDIUM ({results.severities.medium})
                 </TabsTrigger>
                 <TabsTrigger
                   value="low"
                   className="data-[state=active]:bg-blue-900/70 data-[state=active]:text-blue-200 font-mono"
                 >
-                  NOTICE ({results.severities.low})
+                  LOW ({results.severities.low})
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -553,7 +545,7 @@ function CyberVulnerabilityTable({
           bgColor: "bg-red-900/30",
           borderColor: "border-red-500/30",
           icon: <ShieldAlert className="h-4 w-4 text-red-400" />,
-          label: "CRITICAL",
+          label: "HIGH",
         };
       case "medium":
         return {
@@ -561,7 +553,7 @@ function CyberVulnerabilityTable({
           bgColor: "bg-yellow-900/30",
           borderColor: "border-yellow-500/30",
           icon: <AlertTriangle className="h-4 w-4 text-yellow-400" />,
-          label: "WARNING",
+          label: "MEDIUM",
         };
       case "low":
         return {
@@ -569,7 +561,7 @@ function CyberVulnerabilityTable({
           bgColor: "bg-blue-900/30",
           borderColor: "border-blue-500/30",
           icon: <Eye className="h-4 w-4 text-blue-400" />,
-          label: "NOTICE",
+          label: "LOW",
         };
       default:
         return {
@@ -584,104 +576,186 @@ function CyberVulnerabilityTable({
 
   if (vulnerabilities.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <div className="w-16 h-16 rounded-full bg-green-900/30 border border-green-500/30 flex items-center justify-center mb-4">
-          <Lock className="h-8 w-8 text-green-400" />
+      <div className="flex flex-col items-center justify-center py-8 sm:py-12 text-center">
+        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-green-900/30 border border-green-500/30 flex items-center justify-center mb-4">
+          <Lock className="h-6 w-6 sm:h-8 sm:w-8 text-green-400" />
         </div>
-        <h3 className="text-xl font-mono font-medium mb-2 text-green-400">
+        <h3 className="text-lg sm:text-xl font-mono font-medium mb-2 text-green-400">
           SECURE
         </h3>
-        <p className="text-green-300/70 max-w-md">
+        <p className="text-green-300/70 text-sm sm:text-base max-w-md">
           No security vulnerabilities detected in this category
         </p>
       </div>
     );
   }
 
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full border-collapse">
-        <thead>
-          <tr className="bg-gray-900/70 text-xs uppercase font-mono">
-            <th className="px-4 py-3 text-left">Severity</th>
-            <th className="px-4 py-3 text-left">File Location</th>
-            <th className="px-4 py-3 text-left">Line</th>
-            <th className="px-4 py-3 text-left">Vulnerability</th>
-            <th className="px-4 py-3 text-left">Impact</th>
-            <th className="px-4 py-3 text-left">Reference</th>
-            <th className="px-4 py-3 text-left">Actions</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-blue-900/30">
-          {vulnerabilities.map((vuln) => {
-            const severityData = getSeverityData(vuln.severity);
+  // Mobile card view for small screens
+  const renderMobileView = () => {
+    return (
+      <div className="space-y-4">
+        {vulnerabilities.map((vuln) => {
+          const severityData = getSeverityData(vuln.severity);
 
-            return (
-              <tr
-                key={vuln.id}
-                className="hover:bg-blue-900/10 transition-colors text-gray-300"
-              >
-                <td className="px-4 py-3">
-                  <div
-                    className={`inline-flex items-center px-2 py-1 rounded ${severityData.bgColor} ${severityData.borderColor} border gap-1`}
-                  >
-                    {severityData.icon}
-                    <span className={`text-xs font-mono ${severityData.color}`}>
-                      {severityData.label}
-                    </span>
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <FileWarning className="h-4 w-4 text-gray-400" />
-                    <span
-                      className="font-mono text-sm max-w-[160px] truncate"
-                      title={vuln.file}
-                    >
-                      {vuln.file}
-                    </span>
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <span className="font-mono text-sm bg-gray-800 px-2 py-1 rounded">
-                    {vuln.line}
+          return (
+            <div
+              key={vuln.id}
+              className="bg-gray-900/30 border border-blue-500/20 rounded-lg p-4"
+            >
+              <div className="flex justify-between items-center mb-3">
+                <div
+                  className={`inline-flex items-center px-2 py-1 rounded ${severityData.bgColor} ${severityData.borderColor} border gap-1`}
+                >
+                  {severityData.icon}
+                  <span className={`text-xs font-mono ${severityData.color}`}>
+                    {severityData.label}
                   </span>
-                </td>
-                <td className="px-4 py-3 max-w-xs">
-                  <span className="font-mono text-sm">{vuln.description}</span>
-                </td>
-                <td className="px-4 py-3 text-gray-400 max-w-xs">
-                  <span className="text-xs">{vuln.impact}</span>
-                </td>
-                <td className="px-4 py-3">
-                  {vuln.cveId ? (
-                    <div className="bg-blue-900/20 border border-blue-500/30 rounded px-2 py-1">
-                      <span className="text-xs font-mono text-blue-400">
-                        {vuln.cveId}
+                </div>
+
+                {vuln.cveId ? (
+                  <div className="bg-blue-900/20 border border-blue-500/30 rounded px-2 py-1">
+                    <span className="text-xs font-mono text-blue-400">
+                      {vuln.cveId}
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-xs text-gray-500">No CVE</span>
+                )}
+              </div>
+
+              <div className="mb-2 flex items-center gap-2">
+                <FileWarning className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                <span className="font-mono text-sm truncate text-gray-300">
+                  {vuln.file}
+                </span>
+                <span className="font-mono text-xs bg-gray-800 px-2 py-1 rounded">
+                  Line {vuln.line}
+                </span>
+              </div>
+
+              <div className="mb-2">
+                <span className="font-mono text-sm text-white">
+                  {vuln.description}
+                </span>
+              </div>
+
+              <div className="mb-3">
+                <span className="text-xs text-gray-400">{vuln.impact}</span>
+              </div>
+
+              <Button
+                size="sm"
+                className="w-full h-8 bg-gray-800 hover:bg-gray-700 text-blue-300 border border-blue-500/20 font-mono text-xs"
+              >
+                View Fix
+              </Button>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  // Desktop table view for larger screens
+  const renderDesktopView = () => {
+    return (
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="bg-gray-900/70 text-xs uppercase font-mono">
+              <th className="px-4 py-3 text-left text-white">Severity</th>
+              <th className="px-4 py-3 text-left text-white">File Location</th>
+              <th className="px-4 py-3 text-left text-white">Line</th>
+              <th className="px-4 py-3 text-left text-white">Vulnerability</th>
+              <th className="px-4 py-3 text-left text-white">Impact</th>
+              <th className="px-4 py-3 text-left text-white">Reference</th>
+              <th className="px-4 py-3 text-left text-white">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-blue-900/30">
+            {vulnerabilities.map((vuln) => {
+              const severityData = getSeverityData(vuln.severity);
+
+              return (
+                <tr
+                  key={vuln.id}
+                  className="hover:bg-blue-900/10 transition-colors text-gray-300"
+                >
+                  <td className="px-4 py-3">
+                    <div
+                      className={`inline-flex items-center px-2 py-1 rounded ${severityData.bgColor} ${severityData.borderColor} border gap-1`}
+                    >
+                      {severityData.icon}
+                      <span
+                        className={`text-xs font-mono ${severityData.color}`}
+                      >
+                        {severityData.label}
                       </span>
                     </div>
-                  ) : (
-                    <span className="text-xs text-gray-500">—</span>
-                  )}
-                </td>
-                <td className="px-4 py-3">
-                  <Button
-                    size="sm"
-                    className="h-8 bg-gray-800 hover:bg-gray-700 text-blue-300 border border-blue-500/20 font-mono text-xs"
-                  >
-                    View Fix
-                  </Button>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <FileWarning className="h-4 w-4 text-gray-400" />
+                      <span
+                        className="font-mono text-sm max-w-[160px] truncate"
+                        title={vuln.file}
+                      >
+                        {vuln.file}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="font-mono text-sm bg-gray-800 px-2 py-1 rounded">
+                      {vuln.line}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 max-w-xs">
+                    <span className="font-mono text-sm">
+                      {vuln.description}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-gray-400 max-w-xs">
+                    <span className="text-xs">{vuln.impact}</span>
+                  </td>
+                  <td className="px-4 py-3">
+                    {vuln.cveId ? (
+                      <div className="bg-blue-900/20 border border-blue-500/30 rounded px-2 py-1">
+                        <span className="text-xs font-mono text-blue-400">
+                          {vuln.cveId}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-gray-500">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <Button
+                      size="sm"
+                      className="h-8 bg-gray-800 hover:bg-gray-700 text-blue-300 border border-blue-500/20 font-mono text-xs"
+                    >
+                      View Fix
+                    </Button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
+  return (
+    <>
+      {/* Mobile view - visible on small screens only */}
+      <div className="md:hidden">{renderMobileView()}</div>
+
+      {/* Desktop view - visible on medium screens and up */}
+      <div className="hidden md:block">{renderDesktopView()}</div>
+    </>
   );
 }
 
-// Need to add the Clock component that was referenced above
 function Clock({ className }: { className?: string }) {
   return (
     <svg
