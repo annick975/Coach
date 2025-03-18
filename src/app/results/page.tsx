@@ -1,13 +1,23 @@
 "use client";
-
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  AlertCircle, ArrowLeft, RefreshCw, Download, 
-  Shield, ShieldAlert, Eye, Terminal, FileWarning,
-  Lock, Fingerprint, Zap, AlertTriangle
+import {
+  AlertCircle,
+  ArrowLeft,
+  RefreshCw,
+  Download,
+  Shield,
+  ShieldAlert,
+  Eye,
+  Terminal,
+  FileWarning,
+  Lock,
+  Fingerprint,
+  Zap,
+  AlertTriangle,
 } from "lucide-react";
 
 // Simulated data for demonstration
@@ -70,7 +80,48 @@ const mockResults = {
   ],
 };
 
+// Move fetchResults outside component to avoid recreation on each render
+const fetchResults = async (
+  setLoadingProgress: React.Dispatch<React.SetStateAction<number>>
+) => {
+  const interval = setInterval(() => {
+    setLoadingProgress((prev) => {
+      if (prev >= 95) {
+        clearInterval(interval);
+        return 95;
+      }
+      return prev + Math.floor(Math.random() * 15);
+    });
+  }, 300);
+
+  await new Promise((resolve) => setTimeout(resolve, 1500));
+  setLoadingProgress(100);
+  clearInterval(interval);
+  return mockResults;
+};
+
 export default function ResultsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div
+          className="min-h-screen w-full flex items-center justify-center"
+      
+        >
+          <div className="max-w-md w-full px-6 py-8 rounded-lg bg-black/50 backdrop-blur-md border border-blue-500/30 shadow-lg shadow-blue-500/10">
+            <div className="flex items-center justify-center">
+              <div className="h-8 w-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          </div>
+        </div>
+      }
+    >
+      <ResultsContent />
+    </Suspense>
+  );
+}
+
+function ResultsContent() {
   const searchParams = useSearchParams();
   const repoUrl = searchParams.get("repo");
   const [results, setResults] = useState<typeof mockResults | null>(null);
@@ -80,33 +131,19 @@ export default function ResultsPage() {
   const [loadingProgress, setLoadingProgress] = useState(0);
 
   useEffect(() => {
-    // In a real app, fetch actual results from your API
-    const fetchResults = async () => {
-      try {
-        // Simulate progressive loading for better UX
-        const interval = setInterval(() => {
-          setLoadingProgress((prev) => {
-            if (prev >= 95) {
-              clearInterval(interval);
-              return 95;
-            }
-            return prev + Math.floor(Math.random() * 15);
-          });
-        }, 300);
-
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-        setResults(mockResults);
-        setLoadingProgress(100);
-        clearInterval(interval);
-      } catch (error) {
-        setError("Failed to load scan results");
-      } finally {
-        setTimeout(() => setLoading(false), 300);
-      }
-    };
-
     if (repoUrl) {
-      fetchResults();
+      const doFetch = async () => {
+        try {
+          const results = await fetchResults(setLoadingProgress);
+          setResults(results);
+        } catch (error) {
+          setError("Failed to load scan results");
+        } finally {
+          setTimeout(() => setLoading(false), 300);
+        }
+      };
+
+      doFetch();
     } else {
       setError("No repository specified");
       setLoading(false);
@@ -126,29 +163,18 @@ export default function ResultsPage() {
     setLoadingProgress(0);
     setError("");
 
-    // Reset and refetch
-    setTimeout(() => {
-      fetchResults();
-    }, 500);
-  };
+    const doFetch = async () => {
+      try {
+        const results = await fetchResults(setLoadingProgress);
+        setResults(results);
+      } catch (error) {
+        setError("Failed to load scan results");
+      } finally {
+        setTimeout(() => setLoading(false), 300);
+      }
+    };
 
-  const fetchResults = async () => {
-    // Simulate progressive loading for better UX
-    const interval = setInterval(() => {
-      setLoadingProgress((prev) => {
-        if (prev >= 95) {
-          clearInterval(interval);
-          return 95;
-        }
-        return prev + Math.floor(Math.random() * 15);
-      });
-    }, 300);
-
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setResults(mockResults);
-    setLoadingProgress(100);
-    clearInterval(interval);
-    setTimeout(() => setLoading(false), 300);
+    setTimeout(doFetch, 500);
   };
 
   // Background pattern for cyber theme
@@ -269,7 +295,6 @@ export default function ResultsPage() {
     return "text-red-400";
   };
 
-
   return (
     <div className="min-h-screen w-full" style={{ background: cyberPattern }}>
       <div className="max-w-6xl mx-auto py-12 px-4 sm:px-6">
@@ -278,9 +303,7 @@ export default function ResultsPage() {
           <div className="inline-block bg-black/40 backdrop-blur-sm p-3 rounded-lg border border-blue-500/30 mb-6">
             <div className="flex items-center justify-center gap-3">
               <Shield className="h-8 w-8 text-blue-400" />
-              <h1 className="text-3xl font-mono font-bold text-white">
-                COACH
-              </h1>
+              <h1 className="text-3xl font-mono font-bold text-white">COACH</h1>
             </div>
           </div>
 
