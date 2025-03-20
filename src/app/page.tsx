@@ -15,6 +15,7 @@ import {
   Fingerprint,
   Scan,
 } from "lucide-react";
+import api from "@/lib/api";
 
 export default function Home() {
   const [isScanning, setIsScanning] = useState(false);
@@ -33,7 +34,7 @@ export default function Home() {
     setError("");
     setIsScanning(true);
 
-    // Simulate scan progress
+    
     const interval = setInterval(() => {
       setScanProgress((prev) => {
         if (prev >= 95) {
@@ -45,24 +46,41 @@ export default function Home() {
     }, 300);
 
     try {
-      // In a real implementation, this would call your API
-      await new Promise((resolve) => setTimeout(resolve, 3000));
+      // Call the backend API to start the scan
+      const response = await api.scanRepository(repoUrl);
+
+      // Keep checking scan status until completed or failed
+      let scanResult = await api.getScanResults(response.scan_id);
+
+      while (
+        scanResult.status === "pending" ||
+        scanResult.status === "in_progress"
+      ) {
+        await new Promise((resolve) => setTimeout(resolve, 1000)); // Poll every 1 second
+        scanResult = await api.getScanResults(response.scan_id);
+      }
+
       clearInterval(interval);
       setScanProgress(100);
 
-      // Navigate to results page with simulated data for now
+      // Navigate to results page with the scan ID
       setTimeout(() => {
-        router.push("/results?repo=" + encodeURIComponent(repoUrl));
+        router.push(
+          `/results?scanId=${response.scan_id}&repo=${encodeURIComponent(
+            repoUrl
+          )}`
+        );
       }, 500);
     } catch (error) {
       clearInterval(interval);
       setIsScanning(false);
       setScanProgress(0);
       setError("Failed to scan repository. Please try again.");
+      console.error("Scan error:", error);
     }
   };
 
-  // Background pattern for cyber theme
+ 
   const cyberPattern = `linear-gradient(to right, rgba(16, 24, 39, 0.9), rgba(16, 24, 39, 0.92)), 
                         url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%232563eb' fill-opacity='0.12'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`;
 
@@ -100,7 +118,7 @@ export default function Home() {
                 setRepoUrl={setRepoUrl}
                 error={error}
               />
-            )}z
+            )}
           </div>
 
           {/* Feature Highlights */}
@@ -147,7 +165,7 @@ export default function Home() {
   );
 }
 
-// Cyber-themed Scan Form
+
 function CyberScanForm({
   onScan,
   repoUrl,
@@ -223,7 +241,7 @@ function CyberScanForm({
   );
 }
 
-// Cyber-themed Loading State
+
 function CyberLoadingState({ progress }: { progress: number }) {
   return (
     <div className="bg-black/40 backdrop-blur-md rounded-xl border border-blue-500/30 p-8 hover:shadow-lg hover:shadow-blue-500/10 transition-all">

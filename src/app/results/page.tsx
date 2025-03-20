@@ -19,69 +19,11 @@ import {
   Zap,
   AlertTriangle,
 } from "lucide-react";
+import api, { ScanResult, Vulnerability } from "@/lib/api";
 
-// Simulated data for demonstration
-const mockResults = {
-  repoName: "username/repository",
-  scanTimestamp: new Date().toISOString(),
-  securityScore: 72,
-  totalIssues: 12,
-  severities: {
-    high: 3,
-    medium: 5,
-    low: 4,
-  },
-  vulnerabilities: [
-    {
-      id: 1,
-      file: "src/auth.js",
-      line: 45,
-      severity: "high",
-      description: "Insecure authentication method",
-      impact: "Could allow unauthorized access to user accounts",
-      cveId: "CVE-2023-1234",
-    },
-    {
-      id: 2,
-      file: "src/api/users.js",
-      line: 23,
-      severity: "high",
-      description: "SQL injection vulnerability",
-      impact: "Allows attackers to execute arbitrary SQL commands",
-      cveId: "CVE-2023-5678",
-    },
-    {
-      id: 3,
-      file: "src/utils/validation.js",
-      line: 12,
-      severity: "medium",
-      description: "Improper input validation",
-      impact: "May lead to various injection attacks",
-      cveId: null,
-    },
-    // {
-    //   id: 4,
-    //   file: "src/components/Form.jsx",
-    //   line: 78,
-    //   severity: "low",
-    //   description: "XSS vulnerability in form handling",
-    //   impact: "Could enable client-side script injection",
-    //   cveId: null,
-    // },
-    {
-      id: 5,
-      file: "src/middleware/logger.js",
-      line: 34,
-      severity: "medium",
-      description: "Information exposure through logs",
-      impact: "Sensitive data might be exposed in application logs",
-      cveId: null,
-    },
-  ],
-};
 
-// Move fetchResults outside component to avoid recreation on each render
 const fetchResults = async (
+  scanId: string,
   setLoadingProgress: React.Dispatch<React.SetStateAction<number>>
 ) => {
   const interval = setInterval(() => {
@@ -94,20 +36,94 @@ const fetchResults = async (
     });
   }, 300);
 
-  await new Promise((resolve) => setTimeout(resolve, 1500));
-  setLoadingProgress(100);
-  clearInterval(interval);
-  return mockResults;
+  try {
+    const result = await api.getScanResults(scanId);
+    setLoadingProgress(100);
+    clearInterval(interval);
+
+
+    return {
+      repoName: result.results?.repo_url || "Unknown repository",
+      scanTimestamp: result.completed_at || result.created_at,
+      securityScore: calculateSecurityScore(
+        result.results?.vulnerabilities || []
+      ),
+      totalIssues: result.results?.vulnerabilities?.length || 0,
+      severities: countVulnerabilitiesBySeverity(
+        result.results?.vulnerabilities || []
+      ),
+      vulnerabilities: normalizeVulnerabilities(
+        result.results?.vulnerabilities || []
+      ),
+    };
+  } catch (error) {
+    clearInterval(interval);
+    throw error;
+  }
+};
+
+const calculateSecurityScore = (vulnerabilities: Vulnerability[]) => {
+  if (!vulnerabilities.length) return 100;
+
+  
+  let score = 100;
+
+  for (const vuln of vulnerabilities) {
+    switch (vuln.severity.toLowerCase()) {
+      case "high":
+      case "critical":
+        score -= 10;
+        break;
+      case "medium":
+        score -= 5;
+        break;
+      case "low":
+        score -= 2;
+        break;
+      default:
+        score -= 1;
+    }
+  }
+
+ 
+  return Math.max(0, score);
+};
+
+const countVulnerabilitiesBySeverity = (vulnerabilities: Vulnerability[]) => {
+  const counts = { high: 0, medium: 0, low: 0 };
+
+  for (const vuln of vulnerabilities) {
+    const severity = vuln.severity.toLowerCase();
+    if (severity === "high" || severity === "critical") {
+      counts.high++;
+    } else if (severity === "medium") {
+      counts.medium++;
+    } else {
+      counts.low++;
+    }
+  }
+
+  return counts;
+};
+
+const normalizeVulnerabilities = (vulnerabilities: Vulnerability[]) => {
+  return vulnerabilities.map((vuln, index) => ({
+    id: index + 1,
+    file: vuln.file_path,
+    line: vuln.line_number,
+    severity: vuln.severity.toLowerCase(),
+    description: vuln.description,
+    impact: `Detected by ${vuln.tool}`,
+    cveId: null,
+    code: vuln.code,
+  }));
 };
 
 export default function ResultsPage() {
   return (
     <Suspense
       fallback={
-        <div
-          className="min-h-screen w-full flex items-center justify-center"
-      
-        >
+        <div className="min-h-screen w-full flex items-center justify-center">
           <div className="max-w-md w-full px-6 py-8 rounded-lg bg-black/50 backdrop-blur-md border border-blue-500/30 shadow-lg shadow-blue-500/10">
             <div className="flex items-center justify-center">
               <div className="h-8 w-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
@@ -124,19 +140,21 @@ export default function ResultsPage() {
 function ResultsContent() {
   const searchParams = useSearchParams();
   const repoUrl = searchParams.get("repo");
-  const [results, setResults] = useState<typeof mockResults | null>(null);
+  const scanId = searchParams.get("scanId");
+  const [results, setResults] = useState<any | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [isGeneratingFixes, setIsGeneratingFixes] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
 
   useEffect(() => {
-    if (repoUrl) {
+    if (repoUrl && scanId) {
       const doFetch = async () => {
         try {
-          const results = await fetchResults(setLoadingProgress);
+          const results = await fetchResults(scanId, setLoadingProgress);
           setResults(results);
         } catch (error) {
+          console.error("Failed to load scan results:", error);
           setError("Failed to load scan results");
         } finally {
           setTimeout(() => setLoading(false), 300);
@@ -145,39 +163,70 @@ function ResultsContent() {
 
       doFetch();
     } else {
-      setError("No repository specified");
+      setError("Missing repository or scan ID");
       setLoading(false);
     }
-  }, [repoUrl]);
+  }, [repoUrl, scanId]);
 
   const handleGenerateFixes = async () => {
+    if (!results?.vulnerabilities || results.vulnerabilities.length === 0) {
+      return;
+    }
+
     setIsGeneratingFixes(true);
-    // In a real implementation, call Gemini API
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    setIsGeneratingFixes(false);
-    // Handle displaying fixes
+    try {
+      // Call AI fix endpoint
+      const fixes = await api.getAIFixes(results.vulnerabilities);
+     
+      console.log("AI fixes generated:", fixes);
+    } catch (error) {
+      console.error("Failed to generate fixes:", error);
+    } finally {
+      setIsGeneratingFixes(false);
+    }
   };
 
-  const handleRescan = () => {
+  const handleRescan = async () => {
+    if (!repoUrl) return;
+
     setLoading(true);
     setLoadingProgress(0);
     setError("");
 
-    const doFetch = async () => {
-      try {
-        const results = await fetchResults(setLoadingProgress);
-        setResults(results);
-      } catch (error) {
-        setError("Failed to load scan results");
-      } finally {
-        setTimeout(() => setLoading(false), 300);
-      }
-    };
+    try {
+  
+      const response = await api.scanRepository(repoUrl);
+      const newScanId = response.scan_id;
 
-    setTimeout(doFetch, 500);
+      
+      let scanResult = await api.getScanResults(newScanId);
+
+      while (
+        scanResult.status === "pending" ||
+        scanResult.status === "in_progress"
+      ) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        scanResult = await api.getScanResults(newScanId);
+
+   
+        if (scanResult.status === "pending") {
+          setLoadingProgress(25);
+        } else if (scanResult.status === "in_progress") {
+          setLoadingProgress(Math.min(75, loadingProgress + 10));
+        }
+      }
+
+      const results = await fetchResults(newScanId, setLoadingProgress);
+      setResults(results);
+    } catch (error) {
+      console.error("Failed to rescan:", error);
+      setError("Failed to rescan repository");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Background pattern for cyber theme
+
   const cyberPattern = `linear-gradient(to right, rgba(16, 24, 39, 0.9), rgba(16, 24, 39, 0.92)), 
                         url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%232563eb' fill-opacity='0.12'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`;
 
@@ -288,7 +337,7 @@ function ResultsContent() {
 
   if (!results) return null;
 
-  // Calculate security score color
+  
   const getScoreColor = (score: number) => {
     if (score >= 80) return "text-green-400";
     if (score >= 60) return "text-yellow-400";
@@ -554,7 +603,7 @@ function ResultsContent() {
   );
 }
 
-// Cyber-themed vulnerability table
+
 function CyberVulnerabilityTable({
   vulnerabilities,
 }: {
